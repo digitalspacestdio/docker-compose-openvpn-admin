@@ -14,8 +14,10 @@ services:
     cap_add:
       - NET_ADMIN
     ports:
-      - 7777:1194 # for openvpn
+      - 1194:1194/udp # for openvpn
+      - 1194:1194/tcp
       - 8080:8080 # for ovpn-admin because of network_mode
+    restart: always
     volumes:
       - ./easyrsa_master:/etc/openvpn/easyrsa
       - ./ccd_master:/etc/openvpn/ccd
@@ -31,12 +33,13 @@ services:
       OVPN_CCD: "true"
       OVPN_CCD_PATH: "/mnt/ccd"
       EASYRSA_PATH: "/mnt/easyrsa"
-      OVPN_SERVER: "127.0.0.1:7777:tcp"
+      OVPN_SERVER: "${OVPN_PUBLIC_IP:-127.0.0.1}:1194:udp"
       OVPN_INDEX_PATH: "/mnt/easyrsa/pki/index.txt"
       OVPN_AUTH: "true"
       OVPN_AUTH_DB_PATH: "/mnt/easyrsa/pki/users.db"
       LOG_LEVEL: "debug"
     network_mode: service:openvpn
+    restart: always
     volumes:
       - ./easyrsa_master:/mnt/easyrsa
       - ./ccd_master:/mnt/ccd
