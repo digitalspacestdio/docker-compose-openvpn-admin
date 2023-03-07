@@ -38,6 +38,8 @@ services:
       OVPN_AUTH: "true"
       OVPN_AUTH_DB_PATH: "/mnt/easyrsa/pki/users.db"
       LOG_LEVEL: "debug"
+      OVPN_MASTER_USER: admin
+      OVPN_MASTER_PASSWORD: '$ecretPassw0rd'
     network_mode: service:openvpn
     restart: always
     volumes:
