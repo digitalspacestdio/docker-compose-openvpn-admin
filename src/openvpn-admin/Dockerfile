@@ -20,3 +20,7 @@ RUN apk add --update --no-cache bash easy-rsa openssl openvpn coreutils  && \
     ln -s /usr/share/easy-rsa/easyrsa /usr/local/bin && \
     wget https://github.com/pashcovich/openvpn-user/releases/download/v1.0.4/openvpn-user-linux-${TARGETARCH:-$(uname -m)}.tar.gz -O - | tar xz -C /usr/local/bin && \
     if [ -f "/usr/local/bin/openvpn-user-${TARGETARCH:-$(uname -m)}" ]; then ln -s /usr/local/bin/openvpn-user-${TARGETARCH:-$(uname -m)} /usr/local/bin/openvpn-user; fi
+
+CMD ["/app/ovpn-admin"]
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD /bin/bash -c '</dev/tcp/localhost/8080'
