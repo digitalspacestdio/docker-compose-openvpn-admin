@@ -1,36 +1,61 @@
-version: '3'
+version: '3.7'
 
 services:
-  openvpn:
+  ovpn:
     build:
-      context: .
-      dockerfile: Dockerfile.openvpn
-    image: openvpn:local
-    command: /etc/openvpn/setup/configure.sh
+      context: src/openvpn
     environment:
-      OVPN_SERVER_NET: "192.168.100.0"
-      OVPN_SERVER_MASK: "255.255.255.0"
+      OVPN_SERVER_NET: "172.16.0.0"
+      OVPN_SERVER_MASK: "255.255.248.0"
     cap_add:
       - NET_ADMIN
+    networks:
+      - ovpn
     ports:
-      - 7777:1194 # for openvpn
-      - 8080:8080 # for ovpn-admin because of network_mode
+      - "${OVPN_BIND_ADDRESS:-0.0.0.0}:${OVPN_BIND_PORT_TCP:-1194}:1194/tcp"
+      - "${OVPN_BIND_ADDRESS:-0.0.0.0}:${OVPN_BIND_PORT_UDP:-1194}:1194/udp"
+    deploy:
+      restart_policy:
+        condition: always
+        delay: 5s
+      resources:
+        limits:
+          memory: ${OVPN_MEMORY_LIMIT_MB:-512}M
     volumes:
-      - ./easyrsa_master:/etc/openvpn/easyrsa
-      - ./ccd_master:/etc/openvpn/ccd
+      - ovpn-easyrsa:/etc/openvpn/easyrsa
+      - ovpn-ccd:/etc/openvpn/ccd
+
   ovpn-admin:
     build:
-      context: .
-    image: ovpn-admin:local
+      context: src/openvpn-admin
     command: /app/ovpn-admin
     environment:
-      OVPN_DEBUG: "True"
-      OVPN_VERBOSE: "True"
-      OVPN_NETWORK: "192.168.100.0/24"
+      OVPN_DEBUG: "False"
+      OVPN_VERBOSE: "False"
+      OVPN_NETWORK: "172.16.0.0/21"
       EASYRSA_PATH: "/mnt/easyrsa"
-      OVPN_SERVER: "127.0.0.1:7777:tcp"
+      OVPN_SERVER: "${OVPN_PUBLIC_HOST:-127.0.0.1}:${OVPN_BIND_PORT_TCP:-1194}:udp"
       OVPN_INDEX_PATH: "/mnt/easyrsa/pki/index.txt"
-    network_mode: service:openvpn
+    networks:
+      - ovpn
+    ports:
+      - "${OVPN_ADMIN_BIND_ADDRESS:-0.0.0.0}:${OVPN_ADMIN_BIND_PORT:-80}:8080"
+    deploy:
+      restart_policy: 
+        condition: always
+        delay: 5s
+      resources:
+        limits:
+          memory: ${OVPN_ADMIN_MEMORY_LIMIT_MB:-128}M
     volumes:
-      - ./easyrsa_master:/mnt/easyrsa
-      - ./ccd_master:/mnt/ccd
+      - ovpn-easyrsa:/mnt/easyrsa
+      - ovpn-ccd:/mnt/ccd
+
+volumes:
+  ovpn-easyrsa:
+    driver: local
+  ovpn-ccd:
+    driver: local
+
+networks:
+  ovpn:
